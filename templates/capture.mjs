@@ -76,7 +76,10 @@ const duration = (file) =>
     ),
   );
 
-async function record(browser, state, scene, start, act) {
+// `zoom` (CSS zoom, e.g. 1.25) renders the UI bigger and still sharp, for scenes
+// where the feature would read small. It narrows the layout width (1280 / zoom),
+// so check it doesn't cross a responsive breakpoint.
+async function record(browser, state, scene, start, act, { zoom = 1 } = {}) {
   const context = await browser.newContext({
     storageState: state,
     viewport: VIEWPORT,
@@ -85,6 +88,11 @@ async function record(browser, state, scene, start, act) {
   });
   const opened = Date.now();
   await context.addInitScript(POLISH);
+  if (zoom !== 1) {
+    await context.addInitScript(
+      `addEventListener("DOMContentLoaded", () => { document.documentElement.style.zoom = "${zoom}"; })`,
+    );
+  }
   const page = await context.newPage();
   await page.mouse.move(VIEWPORT.width / 2, VIEWPORT.height - 120);
   await page.goto(`${BASE}${start}`);
@@ -135,6 +143,8 @@ await record(browser, state, "home", "/", async (page) => {
   await page.mouse.move(600, 400, { steps: 30 });
   await sleep(1000);
 });
+// A small feature, recorded zoomed in:
+// await record(browser, state, "settings", "/settings", async (page) => { ... }, { zoom: 1.4 });
 
 await browser.close();
 console.log(`Footage in ${OUT}`);

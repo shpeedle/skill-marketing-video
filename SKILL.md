@@ -88,6 +88,7 @@ Propose a short table and get a yes:
 - Seeding: reset the demo user's data first so reruns are repeatable. Add enough data that lists look lived in, and backdate it over the past week if possible.
 - Scenes: move the mouse like a person (`click()` helper), type with `pressSequentially` and a delay, and wait on visible results, not fixed sleeps.
 - Warm up dev-server routes before recording so no scene shows a compile spinner.
+- Keep the feature readable. In the final video a full 1280px page shows at about 900px wide, so small UI gets hard to read. For each scene, decide what the viewer must read, then zoom in on it (see "Zooming in" below).
 - Run it and watch every output MP4 (extract a frame with ffmpeg and read it as an image) before moving on.
 
 ### 5. Build the clips
@@ -98,12 +99,13 @@ Propose a short table and get a yes:
 - List clips in `src/clips-list.mjs`; both `Root.tsx` and `render.mjs` read it.
 - Write each clip in `clips.tsx` with timings as multiples of `BEAT` and `BAR`, never raw frame numbers.
 - Footage goes through `<OffthreadVideo>` from `public/app/`. For vertical, crop the sidebar off so the content reads bigger.
+- Add a `focus` to any scene whose feature reads small (see "Zooming in" below).
 - Hooks (`useIn`, `useCurrentFrame`) can't be called inside `.map()` callbacks; use `inStyle(frame, fps, at)` there.
 
 ### 6. Check and render
 
 - `pnpm studio` and tell the user to scrub through. The `Stage` pulse flashes on each bar: if flashes drift from the music, the tempo or offset is wrong.
-- Check text is readable in both formats and nothing is cut off.
+- Check text is readable in both formats and nothing is cut off. Look at a still of each scene at full size: if the feature's text is smaller than the clip's captions by more than about 3×, zoom in.
 - `pnpm render` writes `out/<Clip>-<Format>.mp4`. Pull frames from the renders to check them yourself.
 - Run the project's linter over the new files.
 
@@ -112,6 +114,20 @@ Propose a short table and get a yes:
 - Add a short `README.md` in the video folder: clips table, how to re-record, how to render, audio layout.
 - List any credit the music licence needs in the post caption.
 - Commit only if the user asks. Large media: check if the repo uses Git LFS.
+
+## Zooming in
+
+Use when a scene shows a whole page and the feature is small. Pick one, or both:
+
+| Where | How | Best for | Limit |
+| --- | --- | --- | --- |
+| Capture | `record(..., { zoom: 1.25 })` in `capture.mjs` sets CSS zoom on the page | The whole scene is about one small area; text stays sharp | Narrows the layout to `1280 / zoom` px, which may cross a responsive breakpoint. Check the frame |
+| Remotion | `focus: { x, y, scale, at }` on a `TOUR` entry | Showing the full page, then pushing in on one feature on a beat | `scale` up to about 1.5; past that the footage goes soft, so zoom in capture instead |
+
+- `focus.x` and `focus.y` are fractions of the recording (0–1) for the point to zoom toward. It stays put while the rest grows, so pick the feature's centre. Read a frame of the recording to find it.
+- Start the push-in on a beat (`at`, in beats), after the viewer has seen the whole page for a moment: `at: 2` to `4` in a 2-bar scene.
+- Playwright can't record at 2× pixel density (`deviceScaleFactor` only pads the frame), so CSS zoom is the way to get more detail.
+- Vertical already crops off the sidebar (`SIDEBAR` in `clips.tsx`), which helps before any zoom.
 
 ## Gotchas
 

@@ -3,6 +3,7 @@ import {
   interpolate,
   OffthreadVideo,
   Series,
+  spring,
   staticFile,
   useCurrentFrame,
   useVideoConfig,
@@ -28,22 +29,50 @@ const TOUR_BEAT = 18;
 const TOUR_BAR = TOUR_BEAT * 4;
 const TOUR_SCENE = TOUR_BAR * 2; // must match SCENE_BARS in capture.mjs
 
+type TourShot = {
+  file: string;
+  title: string;
+  sub: string;
+  // Optional push-in on a feature: the point (x, y) to zoom toward, as fractions
+  // of the recording (it stays put while the rest grows around it),
+  // `scale` up to about 1.5 (footage is ~1:1, so more goes soft; zoom in
+  // capture.mjs instead), starting `at` beats into the scene.
+  focus?: { x: number; y: number; scale: number; at?: number };
+};
+
 // TODO: one entry per recorded scene.
-const TOUR = [
-  { file: "home", title: "Caption in a few words.", sub: "Payoff." },
+const TOUR: TourShot[] = [
+  {
+    file: "home",
+    title: "Caption in a few words.",
+    sub: "Payoff.",
+    focus: { x: 0.5, y: 0.4, scale: 1.4, at: 2 },
+  },
 ];
 
-export const TOUR_FRAMES =
-  TOUR_BAR + TOUR_SCENE * TOUR.length + TOUR_BAR * 1.5;
+export const TOUR_FRAMES = TOUR_BAR + TOUR_SCENE * TOUR.length + TOUR_BAR * 1.5;
 
 // Fraction of the recording's width taken by a sidebar. Vertical crops it off,
 // so the page reads bigger. 0 for no sidebar.
 const SIDEBAR = 240 / 1280;
 
-function TourScene({ file, title, sub }: (typeof TOUR)[number]) {
+function TourScene({ file, title, sub, focus }: TourShot) {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
+  const { width, height, fps } = useVideoConfig();
   const crop = height > width ? SIDEBAR : 0;
+  // Without a focus, a slow 5% push-in keeps the screen moving.
+  const at = (focus?.at ?? 0) * TOUR_BEAT;
+  const scale = focus
+    ? interpolate(
+        spring({ frame: frame - at, fps, config: { damping: 200 } }),
+        [0, 1],
+        [1, focus.scale],
+      )
+    : interpolate(frame, [0, TOUR_SCENE], [1, 1.05]);
+  // The focus point in the visible (cropped) area.
+  const origin = focus
+    ? `${((focus.x - crop) / (1 - crop)) * 100}% ${focus.y * 100}%`
+    : "30% 40%";
   return (
     <Scene>
       <Caption>
@@ -69,22 +98,20 @@ function TourScene({ file, title, sub }: (typeof TOUR)[number]) {
         >
           {BRAND.url}
         </div>
-        {/* A slow push-in keeps the screen moving. */}
-        <div
-          style={{
-            transform: `scale(${interpolate(frame, [0, TOUR_SCENE], [1, 1.05])})`,
-            transformOrigin: "30% 40%",
-          }}
-        >
-          <OffthreadVideo
-            src={staticFile(`app/${file}.mp4`)}
-            muted
-            style={{
-              width: `${100 / (1 - crop)}%`,
-              marginLeft: `${(-100 * crop) / (1 - crop)}%`,
-              display: "block",
-            }}
-          />
+        <div style={{ overflow: "hidden" }}>
+          <div
+            style={{ transform: `scale(${scale})`, transformOrigin: origin }}
+          >
+            <OffthreadVideo
+              src={staticFile(`app/${file}.mp4`)}
+              muted
+              style={{
+                width: `${100 / (1 - crop)}%`,
+                marginLeft: `${(-100 * crop) / (1 - crop)}%`,
+                display: "block",
+              }}
+            />
+          </div>
         </div>
       </div>
     </Scene>
@@ -98,7 +125,10 @@ export function Tour() {
       <Sfx at={TOUR_BAR + TOUR_SCENE * TOUR.length} name="thump" />
       <Series>
         <Series.Sequence durationInFrames={TOUR_BAR}>
-          <Hook lines={["A hook that names the pain,", "and the fix."]} step={TOUR_BEAT} />
+          <Hook
+            lines={["A hook that names the pain,", "and the fix."]}
+            step={TOUR_BEAT}
+          />
         </Series.Sequence>
         {TOUR.map((scene) => (
           <Series.Sequence key={scene.file} durationInFrames={TOUR_SCENE}>
