@@ -1,0 +1,4 @@
+# Own root, so this stays out of the app workspace and its lockfile.
+packages: []
+allowBuilds:
+  esbuild: true
