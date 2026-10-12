@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "studio": "remotion studio",
-    "render": "node render.mjs"
+    "render": "node render.mjs",
+    "capture": "node capture/capture.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.529",
@@ -14,6 +15,7 @@
     "remotion": "4.0.529"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/react": "19.1.8",
     "typescript": "5.8.3"
   }

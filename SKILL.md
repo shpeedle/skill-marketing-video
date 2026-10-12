@@ -27,11 +27,34 @@ Playwright records app scenes → ffmpeg fits each to N bars → Remotion lays t
 
 Copy templates into the project and adapt them. Don't import from the skill folder.
 
-**Needs:** Node 20+, pnpm (or npm), `ffmpeg` and `ffprobe`, and Playwright with Chromium (`npx playwright install chromium`). Check these first and tell the user what's missing.
-
 ## Process
 
 Work through these in order. Confirm the plan (step 2) and the track (step 3) with the user before building.
+
+### 0. Check prerequisites
+
+Run this before anything else:
+
+```sh
+node --version; pnpm --version; ffmpeg -version | head -1; ffprobe -version | head -1
+```
+
+| Tool | Why | Install |
+| --- | --- | --- |
+| Node 20+ | Remotion and Playwright | nodejs.org |
+| pnpm (or npm) | Installs the video project | `npm i -g pnpm` |
+| ffmpeg and ffprobe | Fit footage to the beat, process music, generate sound effects | `brew install ffmpeg`, `sudo apt install ffmpeg`, `winget install ffmpeg` |
+| Playwright Chromium | Records the app | `npx playwright install --with-deps chromium`, after `pnpm install` in the video project |
+
+- If anything is missing, tell the user the install command and stop until it's there. Don't install system packages yourself unless asked.
+- Installed for them, no action needed: Remotion, React and `@playwright/test` come from the video project's `pnpm install`; Remotion downloads its own headless browser and ffmpeg on first render.
+- Optional: `aubio` or Python `librosa` measure a track's tempo. Without them, use the BPM from the track's download page and check it with the `Stage` pulse in studio.
+
+Also needed, not software. Raise these early:
+
+- **The app running locally**, with a way to sign in without real email or OAuth (dev magic-link log, seeded test user, test-auth route). If there's none, ask the user before adding one.
+- **A music track that allows commercial use.** The user downloads it; you can suggest sources (`reference/music-licensing.md`).
+- **A Remotion licence** if the user's company has more than 3 people. Free for individuals and smaller companies; see remotion.dev/license.
 
 ### 1. Learn the app
 
@@ -60,7 +83,7 @@ Propose a short table and get a yes:
 
 ### 4. Record the footage
 
-- Start the app. Copy `templates/capture.mjs` to `<video>/capture/capture.mjs` and fill in the `TODO`s: `signIn`, `seed` and the scenes.
+- Start the app. Copy `templates/capture.mjs` to `<video>/capture/capture.mjs` (run it with `pnpm capture`; Playwright is a dev dependency of the video project) and fill in the `TODO`s: `signIn`, `seed` and the scenes.
 - Set `SCENE_SECONDS` to the scene length in bars: `bars × 4 × 60 / BPM`.
 - Seeding: reset the demo user's data first so reruns are repeatable. Add enough data that lists look lived in, and backdate it over the past week if possible.
 - Scenes: move the mouse like a person (`click()` helper), type with `pressSequentially` and a delay, and wait on visible results, not fixed sleeps.
